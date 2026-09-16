@@ -126,13 +126,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .firstWhere((r) => r.id == id, orElse: () => Roommate(id: '', name: 'Unassigned'))
         .name;
   }
+  static const _months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  String _formattedToday() {
+    final now = DateTime.now();
+    return '${_months[now.month - 1]} ${now.day}, ${now.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final group = widget.group;
 
     return Scaffold(
-      appBar: AppBar(title: Text(group.name)),
+      appBar: AppBar(
+        toolbarHeight: 64,
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(group.name),
+            Text(
+              _formattedToday(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
