@@ -1,7 +1,9 @@
 // test/dashboard_add_roommate_category_test.dart
 //
 // Covers adding a roommate and adding a grocery category directly from the
-// DashboardScreen (added after group creation, not via CreateGroupScreen).
+// DashboardScreen. Uses the addRoommateButton / addCategoryButton Keys on
+// the "+" IconButtons so these tests don't depend on the surrounding widget
+// tree's exact shape (Row nesting, wrapper widgets, etc.).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,99 +24,95 @@ void main() {
   }
 
   Future<void> pumpDashboard(WidgetTester tester, GroceryGroup group) async {
+    // The dashboard's body is a ListView, which only builds children near
+    // the visible viewport (Sliver virtualization). The default test
+    // surface (800x600) isn't tall enough to fit every section, so widgets
+    // near the bottom (like the "Add category" row) may not exist in the
+    // tree yet. Using a taller virtual surface avoids that entirely.
+    await tester.binding.setSurfaceSize(const Size(400, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       MaterialApp(
         home: DashboardScreen(group: group),
       ),
     );
-  }
-
-  // Finds the IconButton sitting in the same Row as the given labeled
-  // TextField, so the "Add roommate" and "Add category" buttons (which
-  // share the same icon) can be tapped unambiguously.
-  Finder addButtonFor(String fieldLabel) {
-    final row = find
-        .ancestor(
-          of: find.widgetWithText(TextField, fieldLabel),
-          matching: find.byType(Row),
-        )
-        .first;
-    return find.descendant(of: row, matching: find.byType(IconButton));
+    await tester.pumpAndSettle();
   }
 
   group('Add roommate from DashboardScreen', () {
     testWidgets('adding a roommate shows a new chip with their name',
-        (tester) async {
-      final group = buildGroup();
-      await pumpDashboard(tester, group);
+            (tester) async {
+          final group = buildGroup();
+          await pumpDashboard(tester, group);
 
-      expect(find.widgetWithText(Chip, 'Alex'), findsOneWidget);
-      expect(find.widgetWithText(Chip, 'Sam'), findsNothing);
+          expect(find.widgetWithText(Chip, 'Alex'), findsOneWidget);
+          expect(find.widgetWithText(Chip, 'Sam'), findsNothing);
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Add roommate'),
-        'Sam',
-      );
-      await tester.tap(addButtonFor('Add roommate'));
-      await tester.pumpAndSettle();
+          await tester.enterText(
+            find.widgetWithText(TextField, 'Add roommate'),
+            'Sam',
+          );
+          await tester.tap(find.byKey(const Key('addRoommateButton')));
+          await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(Chip, 'Alex'), findsOneWidget);
-      expect(find.widgetWithText(Chip, 'Sam'), findsOneWidget);
-      expect(group.roommates.map((r) => r.name), containsAll(['Alex', 'Sam']));
-    });
+          expect(find.widgetWithText(Chip, 'Alex'), findsOneWidget);
+          expect(find.widgetWithText(Chip, 'Sam'), findsOneWidget);
+          expect(group.roommates.map((r) => r.name), containsAll(['Alex', 'Sam']));
+        });
 
     testWidgets('clears the input field after adding a roommate',
-        (tester) async {
-      final group = buildGroup();
-      await pumpDashboard(tester, group);
+            (tester) async {
+          final group = buildGroup();
+          await pumpDashboard(tester, group);
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Add roommate'),
-        'Sam',
-      );
-      await tester.tap(addButtonFor('Add roommate'));
-      await tester.pumpAndSettle();
+          await tester.enterText(
+            find.widgetWithText(TextField, 'Add roommate'),
+            'Sam',
+          );
+          await tester.tap(find.byKey(const Key('addRoommateButton')));
+          await tester.pumpAndSettle();
 
-      final field = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'Add roommate'),
-      );
-      expect(field.controller?.text, isEmpty);
-    });
+          final field = tester.widget<TextField>(
+            find.widgetWithText(TextField, 'Add roommate'),
+          );
+          expect(field.controller?.text, isEmpty);
+        });
 
     testWidgets('does not add a roommate when the field is left blank',
-        (tester) async {
-      final group = buildGroup();
-      await pumpDashboard(tester, group);
+            (tester) async {
+          final group = buildGroup();
+          await pumpDashboard(tester, group);
 
-      final roommateCountBefore = group.roommates.length;
+          final roommateCountBefore = group.roommates.length;
 
-      await tester.tap(addButtonFor('Add roommate'));
-      await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('addRoommateButton')));
+          await tester.pumpAndSettle();
 
-      expect(group.roommates.length, roommateCountBefore);
-    });
+          expect(group.roommates.length, roommateCountBefore);
+        });
   });
 
   group('Add category from DashboardScreen', () {
     testWidgets('adding a category shows it in the category list',
-        (tester) async {
-      final group = buildGroup();
-      await pumpDashboard(tester, group);
+            (tester) async {
+          final group = buildGroup();
+          await pumpDashboard(tester, group);
 
-      expect(find.text('Produce'), findsOneWidget);
-      expect(find.text('Snacks'), findsNothing);
+          expect(find.text('Produce'), findsOneWidget);
+          expect(find.text('Snacks'), findsNothing);
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Add category'),
-        'Snacks',
-      );
-      await tester.tap(addButtonFor('Add category'));
-      await tester.pumpAndSettle();
+          await tester.enterText(
+            find.widgetWithText(TextField, 'Add category'),
+            'Snacks',
+          );
+          await tester.tap(find.byKey(const Key('addCategoryButton')));
+          await tester.pumpAndSettle();
 
-      expect(find.text('Produce'), findsOneWidget);
-      expect(find.text('Snacks'), findsOneWidget);
-      expect(group.categories.map((c) => c.name), containsAll(['Produce', 'Snacks']));
-    });
+          expect(find.text('Produce'), findsOneWidget);
+          expect(find.text('Snacks'), findsOneWidget);
+          expect(group.categories.map((c) => c.name), containsAll(['Produce', 'Snacks']));
+        });
 
     testWidgets('a newly added category starts Unassigned', (tester) async {
       final group = buildGroup();
@@ -124,7 +122,7 @@ void main() {
         find.widgetWithText(TextField, 'Add category'),
         'Snacks',
       );
-      await tester.tap(addButtonFor('Add category'));
+      await tester.tap(find.byKey(const Key('addCategoryButton')));
       await tester.pumpAndSettle();
 
       final snacksCategory = group.categories.firstWhere((c) => c.name == 'Snacks');
@@ -132,16 +130,16 @@ void main() {
     });
 
     testWidgets('does not add a category when the field is left blank',
-        (tester) async {
-      final group = buildGroup();
-      await pumpDashboard(tester, group);
+            (tester) async {
+          final group = buildGroup();
+          await pumpDashboard(tester, group);
 
-      final categoryCountBefore = group.categories.length;
+          final categoryCountBefore = group.categories.length;
 
-      await tester.tap(addButtonFor('Add category'));
-      await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('addCategoryButton')));
+          await tester.pumpAndSettle();
 
-      expect(group.categories.length, categoryCountBefore);
-    });
+          expect(group.categories.length, categoryCountBefore);
+        });
   });
 }
