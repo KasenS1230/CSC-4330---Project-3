@@ -6,7 +6,6 @@ import 'expense.dart';
 class GroceryGroup {
   final String id;
   final String name;
-  final Period period;
   final List<Roommate> roommates;
   final List<GroceryCategory> categories;
   final List<Expense> expenses;
@@ -14,7 +13,6 @@ class GroceryGroup {
   GroceryGroup({
     required this.id,
     required this.name,
-    required this.period,
     required this.roommates,
     required this.categories,
     List<Expense>? expenses,

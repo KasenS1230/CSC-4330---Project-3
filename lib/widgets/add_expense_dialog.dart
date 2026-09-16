@@ -17,6 +17,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final _descController = TextEditingController();
   final _amountController = TextEditingController();
   String? _paidBy;
+  Period _period = Period.weekly;
   final Set<String> _splitBetween = {};
 
   @override
@@ -42,6 +43,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       amount: amount,
       splitBetween: _splitBetween.toList(),
       date: DateTime.now(),
+      period: _period,
     ));
 
     Navigator.pop(context);
@@ -72,6 +74,16 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   .map((r) => DropdownMenuItem(value: r.id, child: Text(r.name)))
                   .toList(),
               onChanged: (id) => setState(() => _paidBy = id),
+            ),
+            const SizedBox(height: 12),
+            const Align(alignment: Alignment.centerLeft, child: Text('Counts toward:')),
+            DropdownButton<Period>(
+              value: _period,
+              items: const [
+                DropdownMenuItem(value: Period.weekly, child: Text('Weekly')),
+                DropdownMenuItem(value: Period.monthly, child: Text('Monthly')),
+              ],
+              onChanged: (val) => setState(() => _period = val!),
             ),
             const SizedBox(height: 12),
             const Align(alignment: Alignment.centerLeft, child: Text('Split between:')),

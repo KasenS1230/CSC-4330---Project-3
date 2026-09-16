@@ -17,7 +17,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _roommateController = TextEditingController();
   final _categoryController = TextEditingController();
 
-  Period _period = Period.weekly;
   final List<Roommate> _roommates = [];
   final List<GroceryCategory> _categories = [];
 
@@ -54,7 +53,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final group = GroceryGroup(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: _groupNameController.text.trim(),
-      period: _period,
       roommates: _roommates,
       categories: _categories,
     );
@@ -76,15 +74,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             TextField(
               controller: _groupNameController,
               decoration: const InputDecoration(labelText: 'Group Name'),
-            ),
-            const SizedBox(height: 16),
-            DropdownButton<Period>(
-              value: _period,
-              items: const [
-                DropdownMenuItem(value: Period.weekly, child: Text('Weekly')),
-                DropdownMenuItem(value: Period.monthly, child: Text('Monthly')),
-              ],
-              onChanged: (val) => setState(() => _period = val!),
             ),
             const SizedBox(height: 24),
             const Text('Roommates', style: TextStyle(fontWeight: FontWeight.bold)),

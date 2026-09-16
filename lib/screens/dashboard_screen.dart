@@ -19,10 +19,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _newCategoryController = TextEditingController();
 
-  String _periodLabel() {
-    return widget.group.period == Period.weekly ? 'This Week' : 'This Month';
-  }
-
   // Add this widget-building method inside _DashboardScreenState
   Widget _buildBalancesSection() {
     final balances = BalanceCalculator.calculateNetBalances(
@@ -51,6 +47,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Designated place for per-expense period: each logged expense now shows
+  // whether it counts as a weekly or monthly expense.
+  Widget _buildExpensesSection() {
+    final expenses = widget.group.expenses;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Expenses', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        if (expenses.isEmpty)
+          const Text('No expenses logged yet.')
+        else
+          ...expenses.map((expense) {
+            final periodLabel = expense.period == Period.weekly ? 'Weekly' : 'Monthly';
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                title: Text(expense.description),
+                subtitle: Text('Paid by ${_roommateName(expense.paidBy)}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('\$${expense.amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 20)),
+                    const SizedBox(height: 4, width: 8),
+                    Chip(
+                      label: Text(periodLabel, style: const TextStyle(fontSize: 11)),
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
   void _openAddExpenseDialog() {
     showDialog(
       context: context,
@@ -64,7 +100,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
 
   void _assignCategory(GroceryCategory category, Roommate? roommate) {
     setState(() {
@@ -101,12 +136,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            _periodLabel(),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-
           // Roommates section
           const Text('Roommates', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -130,6 +159,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.add_shopping_cart),
             label: const Text('Add Expense'),
           ),
+
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
+          _buildExpensesSection(),
 
           const SizedBox(height: 24),
           const Divider(),

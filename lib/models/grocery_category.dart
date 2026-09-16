@@ -6,5 +6,3 @@ class GroceryCategory {
 
   GroceryCategory({required this.id, required this.name, this.assignedTo});
 }
-
-enum Period { weekly, monthly }
