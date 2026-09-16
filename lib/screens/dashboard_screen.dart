@@ -18,6 +18,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final _newCategoryController = TextEditingController();
+  final _newRoommateController = TextEditingController();
 
   // Add this widget-building method inside _DashboardScreenState
   Widget _buildBalancesSection() {
@@ -120,6 +121,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _addRoommate() {
+    if (_newRoommateController.text.trim().isEmpty) return;
+    setState(() {
+      widget.group.roommates.add(
+        Roommate(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          name: _newRoommateController.text.trim(),
+        ),
+      );
+      _newRoommateController.clear();
+    });
+  }
+
   String _roommateName(String? id) {
     if (id == null) return 'Unassigned';
     return widget.group.roommates
@@ -169,6 +183,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               label: Text(r.name),
             ))
                 .toList(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _newRoommateController,
+                  decoration: const InputDecoration(labelText: 'Add roommate'),
+                ),
+              ),
+              IconButton(icon: const Icon(Icons.add), onPressed: _addRoommate),
+            ],
           ),
 
           const SizedBox(height: 24),
