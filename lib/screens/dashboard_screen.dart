@@ -255,6 +255,50 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ---------- Tab 2: Expenses ----------
+  Widget _buildTotalExpensesCard(List<Expense> expenses) {
+    final total = expenses.fold<double>(0, (sum, e) => sum + e.amount);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.payments_rounded, color: Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total expenses', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  '\$${total.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${expenses.length} ${expenses.length == 1 ? 'expense' : 'expenses'}',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExpensesTab() {
     final expenses = widget.group.expenses;
 
@@ -278,9 +322,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      itemCount: expenses.length,
+      itemCount: expenses.length + 1,
       itemBuilder: (context, index) {
-        final expense = expenses[index];
+        if (index == 0) {
+          return _buildTotalExpensesCard(expenses);
+        }
+        final expense = expenses[index - 1];
         final periodLabel = expense.period == Period.weekly ? 'Weekly' : 'Monthly';
         final payerName = _roommateName(expense.paidBy);
 
