@@ -1,4 +1,5 @@
 // screens/dashboard_screen.dart
+// screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import '../models/grocery_group.dart';
 import '../models/roommate.dart';
@@ -6,6 +7,7 @@ import '../models/grocery_category.dart';
 import '../models/expense.dart';
 import '../utils/balance_calculator.dart';
 import '../widgets/add_expense_dialog.dart';
+import '../services/group_storage.dart';
 
 class DashboardScreen extends StatefulWidget {
   final GroceryGroup group;
@@ -52,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ---------- Actions ----------
   void _assignCategory(GroceryCategory category, Roommate? roommate) {
     setState(() => category.assignedTo = roommate?.id);
+    GroupStorage.saveGroup(widget.group);
   }
 
   void _addCategory() {
@@ -63,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       );
       _newCategoryController.clear();
     });
+    GroupStorage.saveGroup(widget.group);
     _showSnack('Added "$name" ✓');
   }
 
@@ -75,19 +79,24 @@ class _DashboardScreenState extends State<DashboardScreen>
       );
       _newRoommateController.clear();
     });
+    GroupStorage.saveGroup(widget.group);
     _showSnack('Added $name ✓');
   }
 
   void _deleteExpense(Expense expense) {
     final index = widget.group.expenses.indexOf(expense);
     setState(() => widget.group.expenses.remove(expense));
+    GroupStorage.saveGroup(widget.group);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text('Removed "${expense.description}"'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => setState(() => widget.group.expenses.insert(index, expense)),
+          onPressed: () {
+            setState(() => widget.group.expenses.insert(index, expense));
+            GroupStorage.saveGroup(widget.group);
+          },
         ),
       ));
   }
@@ -95,13 +104,17 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _deleteCategory(GroceryCategory category) {
     final index = widget.group.categories.indexOf(category);
     setState(() => widget.group.categories.remove(category));
+    GroupStorage.saveGroup(widget.group);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text('Removed "${category.name}"'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => setState(() => widget.group.categories.insert(index, category)),
+          onPressed: () {
+            setState(() => widget.group.categories.insert(index, category));
+            GroupStorage.saveGroup(widget.group);
+          },
         ),
       ));
   }
@@ -113,10 +126,33 @@ class _DashboardScreenState extends State<DashboardScreen>
         roommates: widget.group.roommates,
         onAdd: (expense) {
           setState(() => widget.group.expenses.add(expense));
+          GroupStorage.saveGroup(widget.group);
           _showSnack('Expense added ✓');
         },
       ),
     );
+  }
+
+  Future<void> _confirmDeleteGroup() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this group?'),
+        content: Text('This will permanently delete "${widget.group.name}" and all its data.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await GroupStorage.deleteGroup(widget.group.id);
+      if (context.mounted) Navigator.pop(context);
+    }
   }
 
   Color _avatarColor(String seed) {
@@ -406,6 +442,13 @@ class _DashboardScreenState extends State<DashboardScreen>
       appBar: AppBar(
         elevation: 0,
         title: Text(group.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete group',
+            onPressed: _confirmDeleteGroup,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

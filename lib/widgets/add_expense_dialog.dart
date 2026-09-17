@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../models/roommate.dart';
 import '../models/expense.dart';
+import '../models/grocery_category.dart';
 
 class AddExpenseDialog extends StatefulWidget {
   final List<Roommate> roommates;

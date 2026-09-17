@@ -4,6 +4,8 @@ import '../models/roommate.dart';
 import '../models/grocery_category.dart';
 import '../models/grocery_group.dart';
 import 'dashboard_screen.dart';
+import '../services/group_storage.dart';
+import '../models/grocery_category.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -16,6 +18,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _groupNameController = TextEditingController();
   final _roommateController = TextEditingController();
   final _categoryController = TextEditingController();
+
+  Period _period = Period.weekly;
 
   final List<Roommate> _roommates = [];
   final List<GroceryCategory> _categories = [];
@@ -42,7 +46,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     });
   }
 
-  void _finishCreatingGroup() {
+  void _finishCreatingGroup() async {
     if (_groupNameController.text.trim().isEmpty || _roommates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Add a group name and at least one roommate')),
@@ -53,9 +57,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final group = GroceryGroup(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: _groupNameController.text.trim(),
+      period: _period,
       roommates: _roommates,
       categories: _categories,
     );
+
+    await GroupStorage.saveGroup(group);
 
     Navigator.pushReplacement(
       context,
@@ -74,6 +81,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             TextField(
               controller: _groupNameController,
               decoration: const InputDecoration(labelText: 'Group Name'),
+            ),
+            const SizedBox(height: 16),
+            DropdownButton<Period>(
+              value: _period,
+              items: const [
+                DropdownMenuItem(value: Period.weekly, child: Text('Weekly')),
+                DropdownMenuItem(value: Period.monthly, child: Text('Monthly')),
+              ],
+              onChanged: (val) => setState(() => _period = val!),
             ),
             const SizedBox(height: 24),
             const Text('Roommates', style: TextStyle(fontWeight: FontWeight.bold)),
