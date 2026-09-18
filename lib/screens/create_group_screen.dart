@@ -5,7 +5,6 @@ import '../models/grocery_category.dart';
 import '../models/grocery_group.dart';
 import 'dashboard_screen.dart';
 import '../services/group_storage.dart';
-import '../models/grocery_category.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});

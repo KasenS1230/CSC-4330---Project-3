@@ -196,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.08),
+              color: Colors.green.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -252,8 +252,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
               label: Text(r.name),
-              backgroundColor: color.withOpacity(0.08),
-              side: BorderSide(color: color.withOpacity(0.3)),
+              backgroundColor: color.withValues(alpha: 0.08),
+              side: BorderSide(color: color.withValues(alpha: 0.3)),
             );
           }).toList(),
         ),
@@ -283,16 +283,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.25)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.payments_rounded, color: Theme.of(context).colorScheme.primary),
@@ -395,7 +395,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(periodLabel,
