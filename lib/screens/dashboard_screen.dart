@@ -7,6 +7,7 @@ import '../models/grocery_category.dart';
 import '../models/expense.dart';
 import '../utils/balance_calculator.dart';
 import '../widgets/add_expense_dialog.dart';
+import '../widgets/set_budget_dialog.dart';
 import '../services/group_storage.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -129,6 +130,26 @@ class _DashboardScreenState extends State<DashboardScreen>
           GroupStorage.saveGroup(widget.group);
           _showSnack('Expense added ✓');
         },
+      ),
+    );
+  }
+
+  void _setBudget(double amount, Period period) {
+    setState(() {
+      widget.group.budgetAmount = amount;
+      widget.group.budgetPeriod = period;
+    });
+    GroupStorage.saveGroup(widget.group);
+    _showSnack('Budget set ✓');
+  }
+
+  void _openSetBudgetDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => SetBudgetDialog(
+        initialAmount: widget.group.budgetAmount,
+        initialPeriod: widget.group.budgetPeriod ?? Period.weekly,
+        onSave: _setBudget,
       ),
     );
   }
@@ -302,93 +323,206 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildExpensesTab() {
     final expenses = widget.group.expenses;
 
-    if (expenses.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.receipt_long_rounded, size: 56, color: Colors.grey.shade300),
-              const SizedBox(height: 16),
-              Text('No expenses yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-              const SizedBox(height: 6),
-              Text('Tap + to log your first grocery run', style: TextStyle(color: Colors.grey.shade500)),
-            ],
-          ),
+    final Widget listArea = expenses.isEmpty
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long_rounded, size: 56, color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Text('No expenses yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                  const SizedBox(height: 6),
+                  Text('Tap + to log your first grocery run', style: TextStyle(color: Colors.grey.shade500)),
+                ],
+              ),
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            itemCount: expenses.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _buildTotalExpensesCard(expenses);
+              }
+              final expense = expenses[index - 1];
+              final periodLabel = expense.period == Period.weekly ? 'Weekly' : 'Monthly';
+              final payerName = _roommateName(expense.paidBy);
+
+              return Dismissible(
+                key: ValueKey(expense.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.delete_rounded, color: Colors.white),
+                ),
+                onDismissed: (_) => _deleteExpense(expense),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: _avatarColor(payerName),
+                        child: Text(payerName.isNotEmpty ? payerName[0].toUpperCase() : '?',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(expense.description, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Text('Paid by $payerName', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('\$${expense.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(periodLabel,
+                                style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+
+    // The budget summary sits in a fixed footer beneath the scrollable list,
+    // so it stays visible (and editable) no matter how far the user scrolls.
+    return Column(
+      children: [
+        Expanded(child: listArea),
+        _buildBudgetBar(expenses),
+      ],
+    );
+  }
+
+  // ---------- Budget summary (footer of the Expenses tab) ----------
+  Widget _buildBudgetBar(List<Expense> expenses) {
+    final group = widget.group;
+    final total = expenses.fold<double>(0, (sum, e) => sum + e.amount);
+    final hasBudget = group.budgetAmount != null && group.budgetPeriod != null;
+
+    if (!hasBudget) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FilledButton.icon(
+              onPressed: _openSetBudgetDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('Set Budget'),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.savings_outlined, color: Colors.grey.shade500, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No budget set for this group',
+                    style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      itemCount: expenses.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildTotalExpensesCard(expenses);
-        }
-        final expense = expenses[index - 1];
-        final periodLabel = expense.period == Period.weekly ? 'Weekly' : 'Monthly';
-        final payerName = _roommateName(expense.paidBy);
+    final amount = group.budgetAmount!;
+    final periodLabel = group.budgetPeriod == Period.weekly ? 'Weekly' : 'Monthly';
+    final fraction = amount == 0 ? 0.0 : (total / amount).clamp(0.0, 1.0);
+    final over = total > amount;
+    final remaining = amount - total;
+    final barColor = over
+        ? Colors.red
+        : (fraction > 0.85 ? Colors.orange.shade700 : Theme.of(context).colorScheme.primary);
 
-        return Dismissible(
-          key: ValueKey(expense.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.delete_rounded, color: Colors.white),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.savings_rounded, color: barColor, size: 20),
+              const SizedBox(width: 8),
+              Text('$periodLabel Budget', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Spacer(),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                tooltip: 'Edit budget',
+                onPressed: _openSetBudgetDialog,
+              ),
+            ],
           ),
-          onDismissed: (_) => _deleteExpense(expense),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: _avatarColor(payerName),
-                  child: Text(payerName.isNotEmpty ? payerName[0].toUpperCase() : '?',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(expense.description, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      Text('Paid by $payerName', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('\$${expense.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(periodLabel,
-                          style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 10,
+              backgroundColor: Colors.grey.shade200,
+              color: barColor,
             ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '\$${total.toStringAsFixed(2)} of \$${amount.toStringAsFixed(2)} spent',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+              Text(
+                over ? 'Over by \$${(-remaining).toStringAsFixed(2)}' : '\$${remaining.toStringAsFixed(2)} left',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: over ? Colors.red : Colors.green.shade700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

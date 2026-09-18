@@ -11,6 +11,11 @@ class GroceryGroup {
   final List<GroceryCategory> categories;
   final List<Expense> expenses;
 
+  // Budget the group has set for itself, e.g. "$200 weekly" or "$800 monthly".
+  // Null when the group hasn't configured a budget yet.
+  double? budgetAmount;
+  Period? budgetPeriod;
+
   GroceryGroup({
     required this.id,
     required this.name,
@@ -18,6 +23,8 @@ class GroceryGroup {
     required this.roommates,
     required this.categories,
     List<Expense>? expenses,
+    this.budgetAmount,
+    this.budgetPeriod,
   }) : expenses = expenses ?? [];
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +34,8 @@ class GroceryGroup {
     'roommates': roommates.map((r) => r.toJson()).toList(),
     'categories': categories.map((c) => c.toJson()).toList(),
     'expenses': expenses.map((e) => e.toJson()).toList(),
+    'budgetAmount': budgetAmount,
+    'budgetPeriod': budgetPeriod?.name,
   };
 
   factory GroceryGroup.fromJson(Map<String, dynamic> json) => GroceryGroup(
@@ -36,5 +45,7 @@ class GroceryGroup {
     roommates: (json['roommates'] as List).map((r) => Roommate.fromJson(r)).toList(),
     categories: (json['categories'] as List).map((c) => GroceryCategory.fromJson(c)).toList(),
     expenses: (json['expenses'] as List).map((e) => Expense.fromJson(e)).toList(),
+    budgetAmount: (json['budgetAmount'] as num?)?.toDouble(),
+    budgetPeriod: json['budgetPeriod'] == null ? null : Period.values.byName(json['budgetPeriod']),
   );
 }
