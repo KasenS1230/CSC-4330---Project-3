@@ -200,10 +200,15 @@ class _DashboardScreenState extends State<DashboardScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              children: const [
-                Icon(Icons.check_circle_rounded, color: Colors.green),
-                SizedBox(width: 10),
-                Text('Everyone is settled up!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.green),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Everyone is settled up!',
+                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                  ),
+                ),
               ],
             ),
           )
